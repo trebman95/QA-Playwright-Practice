@@ -67,10 +67,10 @@ async function sortHackerNewsArticles() {
 
 
   //Validate if there are 100 articles
-  if (articles === 100) {
+  if (articles.length === 100) {
     console.log("Found 100 articles");
   } else {
-    console.error(`Expected 100 artcles, but found ${articles.length}`);
+    console.error(`Expected 100 articles, but found ${articles.length}`);
     //Delay for 3 seconds and close browser
     await page.waitForTimeout(3000)
     await browser.close();
@@ -79,14 +79,14 @@ async function sortHackerNewsArticles() {
 
   //Create an array of articles with timestamps
   const articlesWithTimeStamps = await Promise.all(articles.map(async article => {
-    return { title: article.tile, timestamp: await ageToTimeStamps(article.ageText) };
+    return { title: article.title, timestamp: await ageToTimeStamps(article.ageText) }; //// Convert age text to timestamp
   }))
 
   //Check if the articles are sorted from newest to oldest
   const isSorted = articlesWithTimeStamps.every((article, i, arr) => {
     if (i === 0) return true; //Skip first article
-    const currentTimeStamp = new Date(arr[i - 1].ageElement).getTime();
-    const nextTimeStamp = new Date(article.ageElement).getTime();
+    const currentTimeStamp = arr[i - 1].timestamp;
+    const nextTimeStamp = article.timestamp;
     return currentTimeStamp >= nextTimeStamp; //Ensure that the current is older or equal
   });
 
@@ -95,6 +95,8 @@ async function sortHackerNewsArticles() {
   } else {
     console.log('Articles are not sorted correctly');
   }
+
+  await browser.close();
 }
 
 
