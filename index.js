@@ -3,14 +3,17 @@ const { arch } = require("os");
 const { chromium } = require("playwright");
 
 async function ageToTimeStamps(ageText) {
-  const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?/i; //Regular expression to match age text in the format of "<number> <unit>"
-  const match = regex.exec(ageText);  //Execute the regex against the provided ageText to extract the numeric value and time unit
+  // Enhanced regex to handle more cases like "1 minute" or "2 hours"
+  const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?/i;
+  const match = regex.exec(ageText);
 
   // If no match is found, handle cases like "just now" or return Infinity for unmatched text
-  if (!match) { // Handle cases like "just now" or "a moment ago"
-    if (ageText.toLowerCase().includes('just now') || ageText.toLowerCase().includes('a moment ago')) {
+  if (!match) {
+    const lowerText = ageText.toLowerCase();
+    if (lowerText.includes('just now') || lowerText.includes('a moment ago')) {
       return new Date().getTime(); // Current time for "just now"
     }
+    console.warn(`Unrecognized age format: ${ageText}`);
     return Infinity
   }; // Default to far future if no match
 
@@ -18,21 +21,29 @@ async function ageToTimeStamps(ageText) {
   const unit = match[2].toLowerCase(); // Convert the time unit to lowercase for uniformity
 
   const now = new Date(); //Get the current date and time
-  switch (unit) { //Calculate the timestamp based on the unit and value
-    case 'minute':
-      return now.getTime() - value * 60 * 1000; // Convert to milliseconds
-    case 'hour':
-      return now.getTime() - value * 60 * 60 * 1000; // Convert to milliseconds
-    case 'day':
-      return now.getTime() - value * 24 * 60 * 60 * 1000; // Convert to milliseconds
-    case 'week':
-      return now.getTime() - value * 7 * 24 * 60 * 60 * 1000; // Convert to milliseconds
+  const msPerUnit = {
+    minute: 60 * 1000,
+    hour: 60 * 60 * 1000,
+    day: 24 * 60 * 60 * 1000,
+    week: 7 * 24 * 60 * 60 * 1000
+  };
+
+  if (unit in msPerUnit) {
+    return now.getTime() - value * msPerUnit[unit];
+  }
+
+  // Handle months and years separately due to variable lengths
+  const date = new Date(now);
+  switch (unit) {
     case 'month':
-      return new Date(now.setMonth(now.getMonth() - value)).getTime(); // Date object for months
+      date.setMonth(date.getMonth() - value);
+      return date.getTime();
     case 'year':
-      return new Date(now.setFullYear(now.getFullYear() - value)).getTime(); // Date object for years
+      date.setFullYear(date.getFullYear() - value);
+      return date.getTime();
     default:
-      return Infinity; // Return far future if unmatched
+      console.warn(`Unhandled time unit: ${unit}`);
+      return Infinity;
   }
 }
 
@@ -95,7 +106,6 @@ async function sortHackerNewsArticles() {
 
   await browser.close();
 }
-
 
 //Invoke the async function
 (async () => {
