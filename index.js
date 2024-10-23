@@ -4,7 +4,7 @@ const { chromium } = require("playwright");
 
 async function ageToTimeStamps(ageText) {
   // Enhanced regex to handle more cases like "1 minute" or "2 hours"
-  const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?/i;
+  const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?\s+ago/;
   const match = regex.exec(ageText);
 
   // If no match is found, handle cases like "just now" or return Infinity for unmatched text
@@ -43,12 +43,12 @@ async function ageToTimeStamps(ageText) {
       return date.getTime();
     default:
       console.warn(`Unhandled time unit: ${unit}`);
-      return Infinity;
+      return null;
   }
 }
 
 async function sortHackerNewsArticles() {
-  // launch browser and go to Hacker News "Newest" page
+  // Launch browser and go to Hacker News "Newest" page
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -60,64 +60,81 @@ async function sortHackerNewsArticles() {
   while (morePages) {
     // Wait for the articles to be fully loaded
     try {
-      await page.waitForSelector('.athing', { timeout: 120000 });
+      await page.waitForSelector('.athing', { timeout: 15000 });
     } catch (error) {
       console.error('Error waiting for articles:', error);
       break; // Exit the function if we can't find articles
     }
 
-    await page.waitForSelector('.athing', { timeout: 120000 });
-
-    //extract articles & timestamps (adjust selectors as needed)
+    // Extract articles & timestamps (adjust selectors as needed)
     const newArticles = await page.$$eval('.athing', items => {
       return items.map(item => {
         const titleElement = item.querySelector('.titleline a');
         const ageElement = item.querySelector('.age a');
 
+        // Debugging: Log the article structure if age is missing
+        if (!ageElement) {
+          console.warn('Missing age element, logging full article for inspection:');
+          console.log(item.innerHTML); // Log the entire item to inspect structure
+        }
+
         return {
-          title: titleElement?.textContent || 'Title not found',
-          ageText: ageElement?.textContent || 'Age not found'
+          title: titleElement?.textContent.trim() || 'Title not found',
+          ageText: ageElement?.textContent.trim() || 'Age not found'
         };
       });
     });
 
+
+    newArticles.forEach(article => {
+      if (article.ageText === 'Age not found') {
+        console.warn(`Unrecognized age format for article: "${article.title}"`);
+      }
+    });
+
     articles = [...articles, ...newArticles]; // Add new articles to the main list
 
-    // Check for a "more" button or link to navigate to the next page
-    const nextPageLink = await page.$(`a.morelink`);
-    //Wait for the navigation to finish and Click the "more" button to load more articles
+    // Check if there's a "more" button to navigate to the next page
+    const nextPageLink = await page.$('a.morelink');
     if (nextPageLink) {
-      // Retry clicking if the element is detached
-      await nextPageLink.click().catch(async () => {
-        console.log('Retry clicking next page link...');
+      // Click the "more" button to load more articles, retrying if needed
+      try {
+        await nextPageLink.click();
+        await page.waitForLoadState('networkidle'); // Wait for network to be idle before proceeding
+      } catch (error) {
+        console.log('Error clicking the next page link, retrying...');
         await page.waitForSelector('a.morelink', { timeout: 5000 });
-        await page.click('a.morelink');
-      });
-      // Wait until the network is idle before proceeding
-      await page.waitForLoadState('networkidle');
+        await nextPageLink.click();
+        await page.waitForLoadState('networkidle');
+      }
     } else {
-      morePages = false; // No more pages to navigate
+      morePages = false; // No more pages
     }
   }
-  //Validate if there are 100 articles
-  const expectedCount = 100
+
+  // Validate if there are 100 articles
+  const expectedCount = 100;
   if (articles.length < expectedCount) {
     console.warn(`[WebServer] Expected ${expectedCount} articles, but found ${articles.length}`);
   }
-  console.log(`Found ${articles.length} articles`)
+  console.log(`Found ${articles.length} articles`);
 
-
-  //Create an array of articles with timestamps
+  // Create an array of articles with timestamps
   const articlesWithTimeStamps = await Promise.all(articles.map(async article => {
-    return { title: article.title, timestamp: await ageToTimeStamps(article.ageText) }; //// Convert age text to timestamp
-  }))
+    const timestamp = await ageToTimeStamps(article.ageText); // Convert age text to timestamp
+    console.log(`Article: "${article.title}", Age Text: "${article.ageText}", Timestamp: ${timestamp}`);
+    return { title: article.title, timestamp };
+  }));
 
-  //Check if the articles are sorted from newest to oldest
+  console.log('Articles with timestamps:', articlesWithTimeStamps);
+
+  // Check if the articles are sorted from newest to oldest
   const isSorted = articlesWithTimeStamps.every((article, i, arr) => {
-    if (i === 0) return true; //Skip first article
+    if (i === 0) return true; // Skip first article
     const currentTimeStamp = arr[i - 1].timestamp;
     const nextTimeStamp = article.timestamp;
-    return currentTimeStamp >= nextTimeStamp; //Ensure that the current is older or equal
+    console.log(`Comparing timestamps: ${currentTimeStamp} >= ${nextTimeStamp}`);
+    return currentTimeStamp >= nextTimeStamp; // Ensure that the current is older or equal
   });
 
   if (isSorted) {
@@ -128,6 +145,7 @@ async function sortHackerNewsArticles() {
 
   await browser.close();
 }
+
 
 //Invoke the async function
 (async () => {
