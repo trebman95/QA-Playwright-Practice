@@ -38,12 +38,10 @@ async function ageToTimeStamps(ageText) {
 }
 
 async function sortHackerNewsArticles() {
-  // launch browser
+  // launch browser and go to Hacker News "Newest" page
   const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext();
   const page = await context.newPage();
-
-  // go to Hacker News "Newest" page
   await page.goto("https://news.ycombinator.com/newest");
 
   // Wait for the articles to be fully loaded
