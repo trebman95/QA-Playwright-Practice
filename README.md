@@ -1,4 +1,4 @@
-# QA Practice Assignment
+# Playwright/JavaScript for Hacker News
 
 ## Instructions
 
@@ -11,11 +11,3 @@ In this assignment, you will create a script on [Hacker News](https://news.ycomb
 2. Edit the `index.js` file in this project to go to [Hacker News/newest](https://news.ycombinator.com/newest) and validate that EXACTLY the first 100 articles are sorted from newest to oldest. You can run your script with the `node index.js` command.
 
 Note that you are welcome to update Playwright or install other packages as you see fit, however you must utilize Playwright in this assignment.
-
-### Question 2
-
-Why do you want to work in QA? Please record a short, ~2 min video that includes:
-
-1. Your answer
-
-2. A walk-through demonstration of your code, showing a successful execution
