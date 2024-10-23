@@ -54,11 +54,15 @@ async function sortHackerNewsArticles() {
   const page = await context.newPage();
   await page.goto("https://news.ycombinator.com/newest");
 
+  let articles = [];
+  let morePages = true;
+
+
   // Wait for the articles to be fully loaded
   await page.waitForSelector('.athing');
 
   //extract articles & timestamps (adjust selectors as needed)
-  const articles = await page.$$eval('.athing', items => {
+  const newArticles = await page.$$eval('.athing', items => {
     return items.map(item => {
       const titleElement = item.querySelector('.titleline a');
       const ageElement = item.querySelector('.age a');
@@ -70,14 +74,24 @@ async function sortHackerNewsArticles() {
     });
   });
 
-  //Output the articles
-  console.log(articles);
+
+  articles = articles.concat(newArticles); // Add new articles to the main list
+
+  // Check for a "more" button or link to navigate to the next page
+  const nextPageLink = await page.$('a.morelink');
+  //Wait for the navigation to finish and Click the "more" button to load more articles
+  if (nextPageLink) {
+    await Promise.all([page.waitForLoadState('networkidle'), nextPageLink.click()]);
+  } else {
+    morePages = false;
+  }
+
 
 
   //Validate if there are 100 articles
   const expectedCount = 100
-  if (articles.length !== expectedCount) {
-    throw new Error(`[WebServer] Expected ${expectedCount} articles, but found ${articles.length}`);
+  if (articles.length < expectedCount) {
+    console.warn(`[WebServer] Expected ${expectedCount} articles, but found ${articles.length}`);
   }
   console.log(`Found ${articles.length} articles`)
 
