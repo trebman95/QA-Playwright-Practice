@@ -4,7 +4,7 @@ const { chromium } = require("playwright");
 
 async function ageToTimeStamps(ageText) {
   // Enhanced regex to handle more cases like "1 minute" or "2 hours"
-  const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?\s+ago/;
+  const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?\s+ago|just now/i;
   const match = regex.exec(ageText);
 
   // If no match is found, handle cases like "just now" or return Infinity for unmatched text
@@ -18,7 +18,7 @@ async function ageToTimeStamps(ageText) {
   }; // Default to far future if no match
 
   const value = parseInt(match[1], 10); // Convert the captured numeric string to an integer
-  const unit = match[2].toLowerCase(); // Convert the time unit to lowercase for uniformity
+  const unit = match[2]?.toLowerCase(); // Convert the time unit to lowercase for uniformity
 
   const now = new Date(); //Get the current date and time
   const msPerUnit = {
@@ -28,23 +28,21 @@ async function ageToTimeStamps(ageText) {
     week: 7 * 24 * 60 * 60 * 1000
   };
 
-  if (unit in msPerUnit) {
-    return now.getTime() - value * msPerUnit[unit];
-  }
-
-  // Handle months and years separately due to variable lengths
-  const date = new Date(now);
   switch (unit) {
     case 'month':
-      date.setMonth(date.getMonth() - value);
-      return date.getTime();
+      return new Date(now.setMonth(now.getMonth() - value)).getTime();
     case 'year':
-      date.setFullYear(date.getFullYear() - value);
-      return date.getTime();
+      return new Date(now.setFullYear(now.getFullYear() - value)).getTime();
+    case 'minute':
+    case 'hour':
+    case 'day':
+    case 'week':
+      return new Date(now.getTime() - value * msPerUnit[unit]).getTime();
     default:
       console.warn(`Unhandled time unit: ${unit}`);
-      return null;
+      return null; // Use null for unmatched units
   }
+
 }
 
 async function sortHackerNewsArticles() {
@@ -60,7 +58,7 @@ async function sortHackerNewsArticles() {
   while (morePages) {
     // Wait for the articles to be fully loaded
     try {
-      await page.waitForSelector('.athing', { timeout: 15000 });
+      await page.waitForSelector('.athing', { timeout: 60000 });
     } catch (error) {
       console.error('Error waiting for articles:', error);
       break; // Exit the function if we can't find articles
