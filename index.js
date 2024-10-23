@@ -6,7 +6,6 @@ async function ageToTimeStamps(ageText) {
   const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?/i; //Regular expression to match age text in the format of "<number> <unit>"
   const match = regex.exec(ageText); //Execute the regex against the provided ageText to extract the numeric value and time unit
 
-
   // If no match is found, handle cases like "just now" or return Infinity for unmatched text
   if (!match) { // Handle cases like "just now" or "a moment ago"
     if (ageText.toLowerCase().includes('just now') || ageText.toLowerCase().includes('a moment ago')) {
@@ -65,15 +64,15 @@ async function sortHackerNewsArticles() {
 
 
   //Validate if there are 100 articles
-  if (articles.length === 100) {
-    console.log("Found 100 articles");
-  } else {
+  if (articles.length !== 100) {
     console.error(`Expected 100 articles, but found ${articles.length}`);
     //Delay for 3 seconds and close browser
     await page.waitForTimeout(3000)
     await browser.close();
     return;
   }
+  console.log("Found 100 articles")
+
 
   //Create an array of articles with timestamps
   const articlesWithTimeStamps = await Promise.all(articles.map(async article => {
