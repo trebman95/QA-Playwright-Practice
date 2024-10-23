@@ -49,7 +49,7 @@ async function ageToTimeStamps(ageText) {
 
 async function sortHackerNewsArticles() {
   // launch browser and go to Hacker News "Newest" page
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("https://news.ycombinator.com/newest");
@@ -111,3 +111,5 @@ async function sortHackerNewsArticles() {
 (async () => {
   await sortHackerNewsArticles();
 })();
+
+module.exports = { sortHackerNewsArticles, ageToTimeStamps };
