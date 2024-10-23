@@ -4,7 +4,7 @@ const { chromium } = require("playwright");
 
 async function ageToTimeStamps(ageText) {
   const regex = /(\d+)\s*(minute|hour|day|week|month|year)s?/i; //Regular expression to match age text in the format of "<number> <unit>"
-  const match = regex.exec(ageText); //Execute the regex against the provided ageText to extract the numeric value and time unit
+  const match = regex.exec(ageText);  //Execute the regex against the provided ageText to extract the numeric value and time unit
 
   // If no match is found, handle cases like "just now" or return Infinity for unmatched text
   if (!match) { // Handle cases like "just now" or "a moment ago"
@@ -38,7 +38,7 @@ async function ageToTimeStamps(ageText) {
 
 async function sortHackerNewsArticles() {
   // launch browser and go to Hacker News "Newest" page
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("https://news.ycombinator.com/newest");
