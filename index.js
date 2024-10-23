@@ -57,37 +57,48 @@ async function sortHackerNewsArticles() {
   let articles = [];
   let morePages = true;
 
+  while (morePages) {
+    // Wait for the articles to be fully loaded
+    try {
+      await page.waitForSelector('.athing', { timeout: 120000 });
+    } catch (error) {
+      console.error('Error waiting for articles:', error);
+      break; // Exit the function if we can't find articles
+    }
 
-  // Wait for the articles to be fully loaded
-  await page.waitForSelector('.athing');
+    await page.waitForSelector('.athing', { timeout: 120000 });
 
-  //extract articles & timestamps (adjust selectors as needed)
-  const newArticles = await page.$$eval('.athing', items => {
-    return items.map(item => {
-      const titleElement = item.querySelector('.titleline a');
-      const ageElement = item.querySelector('.age a');
+    //extract articles & timestamps (adjust selectors as needed)
+    const newArticles = await page.$$eval('.athing', items => {
+      return items.map(item => {
+        const titleElement = item.querySelector('.titleline a');
+        const ageElement = item.querySelector('.age a');
 
-      return {
-        title: titleElement?.textContent || 'Title not found',
-        ageText: ageElement?.textContent || 'Age not found'
-      };
+        return {
+          title: titleElement?.textContent || 'Title not found',
+          ageText: ageElement?.textContent || 'Age not found'
+        };
+      });
     });
-  });
 
+    articles = [...articles, ...newArticles]; // Add new articles to the main list
 
-  articles = articles.concat(newArticles); // Add new articles to the main list
-
-  // Check for a "more" button or link to navigate to the next page
-  const nextPageLink = await page.$('a.morelink');
-  //Wait for the navigation to finish and Click the "more" button to load more articles
-  if (nextPageLink) {
-    await Promise.all([page.waitForLoadState('networkidle'), nextPageLink.click()]);
-  } else {
-    morePages = false;
+    // Check for a "more" button or link to navigate to the next page
+    const nextPageLink = await page.$(`a.morelink`);
+    //Wait for the navigation to finish and Click the "more" button to load more articles
+    if (nextPageLink) {
+      // Retry clicking if the element is detached
+      await nextPageLink.click().catch(async () => {
+        console.log('Retry clicking next page link...');
+        await page.waitForSelector('a.morelink', { timeout: 5000 });
+        await page.click('a.morelink');
+      });
+      // Wait until the network is idle before proceeding
+      await page.waitForLoadState('networkidle');
+    } else {
+      morePages = false; // No more pages to navigate
+    }
   }
-
-
-
   //Validate if there are 100 articles
   const expectedCount = 100
   if (articles.length < expectedCount) {
@@ -121,6 +132,6 @@ async function sortHackerNewsArticles() {
 //Invoke the async function
 (async () => {
   await sortHackerNewsArticles();
-})();
+})().catch(console.error);
 
 module.exports = { sortHackerNewsArticles, ageToTimeStamps };
