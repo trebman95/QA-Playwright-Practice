@@ -76,7 +76,7 @@ async function sortHackerNewsArticles() {
 
   //Validate if there are 100 articles
   const expectedCount = 100
-  if (articles.length !== 100) {
+  if (articles.length !== expectedCount) {
     throw new Error(`[WebServer] Expected ${expectedCount} articles, but found ${articles.length}`);
   }
   console.log(`Found ${articles.length} articles`)
