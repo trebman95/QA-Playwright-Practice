@@ -75,14 +75,11 @@ async function sortHackerNewsArticles() {
 
 
   //Validate if there are 100 articles
+  const expectedCount = 100
   if (articles.length !== 100) {
-    console.error(`Expected 100 articles, but found ${articles.length}`);
-    //Delay for 3 seconds and close browser
-    await page.waitForTimeout(3000)
-    await browser.close();
-    return;
+    throw new Error(`[WebServer] Expected ${expectedCount} articles, but found ${articles.length}`);
   }
-  console.log("Found 100 articles")
+  console.log(`Found ${articles.length} articles`)
 
 
   //Create an array of articles with timestamps
